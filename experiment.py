@@ -126,6 +126,13 @@ def _configure_parser():
         help="should dataset be resized",
     )
 
+    parser.add_argument(
+        "--balanced",
+        choices=['balanced', 'not_balanced'],
+        default='not_balanced',
+        help="should dataset be balanced",
+    )
+
     return parser
 
 

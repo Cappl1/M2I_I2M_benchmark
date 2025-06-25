@@ -1,0 +1,19 @@
+#strategy params
+strategy_name: Naive
+patterns_per_exp: 256
+minibatch_size: 64
+cuda: 1
+
+#model and training params
+model_name: ViT64
+num_classes: 10  # Just MNIST for now
+lr: 0.0001
+optimizer: adam
+momentum: 0.9
+epochs: 2
+
+#scenario params - simple MNIST test
+scenario: simple_mnist
+resized: resized
+balanced: not_balanced
+scenario_type: class_incremental 

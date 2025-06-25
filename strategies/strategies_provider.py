@@ -49,9 +49,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'GEM':
         return GEM(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             patterns_per_exp=args.patterns_per_exp,
             train_epochs=args.epochs,
             device=device,
@@ -70,9 +70,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
                            eval_every=1)
     elif args.strategy_name == 'CWRStar':
         return CWRStar(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -82,9 +82,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'Replay':
         return Replay(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -94,9 +94,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'GDumb':
         return GDumb(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -105,9 +105,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'Cumulative':
         return Cumulative(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -116,9 +116,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'AGEM':
         return AGEM(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -128,9 +128,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'CoPE':
         return CoPE(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -139,9 +139,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'LFL':
         return LFL(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -152,9 +152,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
 
     elif args.strategy_name == 'MAS':
         return MAS(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -164,9 +164,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
         )
     elif args.strategy_name == 'Naive':
         return Naive(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,
@@ -201,9 +201,9 @@ def parse_strategy_name(args, model, optimizer, criterion, device, eval_plugin):
             ],
         )
         return GenerativeReplay(
-            model=model,
-            optimizer=optimizer,
-            criterion=criterion,
+            model,
+            optimizer,
+            criterion,
             train_mb_size=args.minibatch_size,
             train_epochs=args.epochs,
             eval_every=1,

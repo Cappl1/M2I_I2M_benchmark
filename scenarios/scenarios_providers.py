@@ -62,8 +62,22 @@ def _load_datasets(num_class_from_imagenet=200, num_class_from_emnist=26):
 def get_short_mnist_omniglot_fmnist_svhn_cifar10_imagenet(class_incremental: bool, balanced: bool,
                                                           number_of_samples_per_class=None):
     train_mnist, test_mnist = load_mnist_with_resize(balanced, number_of_samples_per_class)
-    train_omniglot, test_omniglot = filter_classes(*load_resized_omniglot(),
-                                                   classes=list(range(10)))
+    
+    # Load omniglot with proper balancing parameters
+    from scenarios.datasets.omniglot import _load_omniglot
+    from torchvision.transforms import Resize, Compose, ToTensor, Normalize
+    from scenarios.utils import transform_from_gray_to_rgb
+    
+    transform_with_resize = Compose([
+        ToTensor(),
+        Resize((64, 64)),
+        transform_from_gray_to_rgb(),
+        Normalize(mean=(0.9221,), std=(0.2681,))
+    ])
+    
+    train_omniglot_full, test_omniglot_full = _load_omniglot(transform_with_resize, balanced=balanced, number_of_samples_per_class=number_of_samples_per_class)
+    train_omniglot, test_omniglot = filter_classes(train_omniglot_full, test_omniglot_full, classes=list(range(10)))
+    
     train_fashion, test_fashion = load_fashion_mnist_with_resize(balanced, number_of_samples_per_class)
     train_svhn, test_svhn = load_svhn_resized(balanced, number_of_samples_per_class)
     train_cifar, test_cifar = load_resized_cifar10(balanced, number_of_samples_per_class)
@@ -79,8 +93,22 @@ def get_short_mnist_omniglot_fmnist_svhn_cifar10_imagenet(class_incremental: boo
 def get_short_imagenet_cifar10_svhn_fmnist_omniglot_mnist(class_incremental: bool, balanced: bool,
                                                           number_of_samples_per_class=None):
     train_mnist, test_mnist = load_mnist_with_resize(balanced, number_of_samples_per_class)
-    train_omniglot, test_omniglot = filter_classes(*load_resized_omniglot(),
-                                                   classes=list(range(10)))
+    
+    # Load omniglot with proper balancing parameters  
+    from scenarios.datasets.omniglot import _load_omniglot
+    from torchvision.transforms import Resize, Compose, ToTensor, Normalize
+    from scenarios.utils import transform_from_gray_to_rgb
+    
+    transform_with_resize = Compose([
+        ToTensor(),
+        Resize((64, 64)),
+        transform_from_gray_to_rgb(),
+        Normalize(mean=(0.9221,), std=(0.2681,))
+    ])
+    
+    train_omniglot_full, test_omniglot_full = _load_omniglot(transform_with_resize, balanced=balanced, number_of_samples_per_class=number_of_samples_per_class)
+    train_omniglot, test_omniglot = filter_classes(train_omniglot_full, test_omniglot_full, classes=list(range(10)))
+    
     train_fashion, test_fashion = load_fashion_mnist_with_resize(balanced, number_of_samples_per_class)
     train_svhn, test_svhn = load_svhn_resized(balanced, number_of_samples_per_class)
     train_cifar, test_cifar = load_resized_cifar10(balanced, number_of_samples_per_class)
@@ -93,13 +121,25 @@ def get_short_imagenet_cifar10_svhn_fmnist_omniglot_mnist(class_incremental: boo
         class_incremental=class_incremental)
 
 
+def get_simple_mnist(class_incremental: bool, balanced: bool = False, number_of_samples_per_class=None):
+    """Simple MNIST-only scenario for testing"""
+    train_mnist, test_mnist = load_mnist_with_resize(balanced, number_of_samples_per_class)
+    
+    return create_scenario(
+        train_dataset=[train_mnist],
+        test_dataset=[test_mnist], 
+        class_incremental=class_incremental)
+
+
 def parse_scenario(args):
     class_incremental = args.scenario_type == 'class_incremental'
     resized = args.resized == 'resized'
     balanced = args.balanced == 'balanced'
-    number_of_samples_per_class = args.number_of_samples_per_class
+    number_of_samples_per_class = getattr(args, 'number_of_samples_per_class', None)
 
-    if args.scenario == 'short_mnist_omniglot_fmnist_svhn_cifar10_imagenet':
+    if args.scenario == 'simple_mnist':
+        return get_simple_mnist(class_incremental, balanced=balanced, number_of_samples_per_class=number_of_samples_per_class)
+    elif args.scenario == 'short_mnist_omniglot_fmnist_svhn_cifar10_imagenet':
         return get_short_mnist_omniglot_fmnist_svhn_cifar10_imagenet(class_incremental, balanced=balanced,
                                                                      number_of_samples_per_class=number_of_samples_per_class)
     elif args.scenario == 'short_imagenet_cifar10_svhn_fmnist_omniglot_mnist':

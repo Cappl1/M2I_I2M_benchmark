@@ -1,0 +1,23 @@
+#strategy params
+strategy_name: Naive  # Start with naive to test
+patterns_per_exp: 256
+minibatch_size: 64  # Good batch size for ViT
+cuda: 1  # Use GPU 1
+
+#model and training params
+model_name: ViT64
+num_classes: 60  # Full scenario: 60 classes total
+lr: 0.0001  # Lower LR for ViT + Adam
+optimizer: adam  # Better for ViTs
+momentum: 0.9
+epochs: 10  # More epochs for full training
+
+#scenario params - Full multi-dataset scenario
+scenario: short_mnist_omniglot_fmnist_svhn_cifar10_imagenet
+resized: resized
+balanced: balanced
+number_of_samples_per_class: 500  # 500 samples per class
+scenario_type: class_incremental
+
+num_class_from_imagenet: 10  # 10 ImageNet classes
+num_experiences: 6  # 6 experiences total

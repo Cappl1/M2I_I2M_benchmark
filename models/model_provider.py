@@ -5,6 +5,7 @@ from torch import nn
 
 from models.VGGSlim import VGGSlim, MultiHeadMLP
 from models.multihead_efficentNet import MultiHeadEfficientnetNet, MultiHeadEfficientnetNetNotPretrained
+from models.vit_models import ViT64SingleHead, ViT64MultiHead
 
 
 def parse_model_name(args):
@@ -33,5 +34,25 @@ def parse_model_name(args):
         return PNN(num_layers=args.num_layer,
                    in_features=12288,
                    adapter="mlp", )
+        
+    # For class-incremental (no task info)
+    elif args.model_name == 'ViT64':
+        return ViT64SingleHead(
+            num_classes=args.num_classes,  # 60 for full scenario
+            patch_size=8,
+            embed_dim=384,
+            depth=12,
+            num_heads=6
+        )
+    
+    # For task-incremental (with task info)
+    elif args.model_name == 'ViT64_multihead':
+        return ViT64MultiHead(
+            num_classes_per_task=10,  # Always 10 per task
+            patch_size=8,
+            embed_dim=384,
+            depth=12,
+            num_heads=6
+        )
     else:
         raise NotImplementedError("MODEL NOT IMPLEMENTED YET: ", args.model_name)
