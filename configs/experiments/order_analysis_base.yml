@@ -1,0 +1,40 @@
+# Order Analysis Experiment Configuration
+experiment_name: order_analysis
+experiment_type: OrderAnalysisExperiment
+
+# Model configuration
+model_name: ViT64
+num_classes: 10
+lr: 0.0003
+momentum: 0.9
+optimizer: adam
+epochs: 50
+minibatch_size: 128
+hs: 250
+
+# Device configuration
+cuda: 0  # -1 for CPU, >= 0 for GPU ID
+
+# Scenario configuration
+scenario: short_mnist_omniglot_fmnist_svhn_cifar10_imagenet
+scenario_type: class_incremental
+resized: resized
+balanced: balanced
+number_of_samples_per_class: 500
+num_class_from_imagenet: 10
+num_experiences: 6
+
+# Strategy configuration
+strategy_name: Naive
+patterns_per_exp: 256
+
+# Order-analysis specifics
+orders: ['MTI', 'ITM', 'EASY_TO_HARD', 'HARD_TO_EASY']
+num_random_orders: 2
+analyze_representations: true
+analysis_batch_size: 64
+
+# Output configuration
+output_dir: logs
+save_model: true
+use_tensorboard: false

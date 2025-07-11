@@ -1,0 +1,435 @@
+{
+  "statistics": {
+    "total": 42,
+    "with_results": 41,
+    "task_incremental": 42,
+    "class_incremental": 0,
+    "unknown": 0,
+    "phase1_only": 0,
+    "phase2_only": 0,
+    "both_phases": 42,
+    "no_phases": 0
+  },
+  "experiments": [
+    {
+      "dir": "BinaryPairsExperiment_20250701_133446",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "mnist",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_133448",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "fashion_mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_140600",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "omniglot",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_140711",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_144155",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "fashion_mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_145923",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_152940",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "omniglot",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_154216",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_161138",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_162502",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_170050",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "cifar10",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_171156",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "cifar10",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_175131",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_175703",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "omniglot",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_182119",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "cifar10",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_184846",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_190847",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "omniglot",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_193154",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_195550",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_201610",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_203825",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "fashion_mnist",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_210805",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "cifar10",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_212425",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_215216",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "fashion_mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_220953",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "cifar10",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_224456",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_230109",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "fashion_mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_233114",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250701_234157",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_002449",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "svhn",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_003327",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "omniglot",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_010622",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "svhn",
+      "dataset_b": "cifar10",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_012243",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "svhn",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_015048",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "svhn",
+      "dataset_b": "fashion_mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_021050",
+      "has_results": false,
+      "scenario_type": "task_incremental",
+      "dataset_a": "unknown",
+      "dataset_b": "unknown",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "config.yaml"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_023741",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "svhn",
+      "dataset_b": "omniglot",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_030002",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "svhn",
+      "dataset_b": "imagenet",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_032859",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "imagenet",
+      "dataset_b": "mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_035226",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "imagenet",
+      "dataset_b": "cifar10",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_042014",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "imagenet",
+      "dataset_b": "fashion_mnist",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_044815",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "imagenet",
+      "dataset_b": "omniglot",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    },
+    {
+      "dir": "BinaryPairsExperiment_20250702_052433",
+      "has_results": true,
+      "scenario_type": "task_incremental",
+      "dataset_a": "imagenet",
+      "dataset_b": "svhn",
+      "phase1": true,
+      "phase2": true,
+      "config_source": "results.json"
+    }
+  ]
+}

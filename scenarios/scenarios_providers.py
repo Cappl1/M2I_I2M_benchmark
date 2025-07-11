@@ -133,8 +133,8 @@ def get_simple_mnist(class_incremental: bool, balanced: bool = False, number_of_
 
 def parse_scenario(args):
     class_incremental = args.scenario_type == 'class_incremental'
-    resized = args.resized == 'resized'
-    balanced = args.balanced == 'balanced'
+    resized = getattr(args, 'resized', 'resized') == 'resized'  # Default to 'resized'
+    balanced = getattr(args, 'balanced', 'balanced') == 'balanced'  # Default to 'balanced'
     number_of_samples_per_class = getattr(args, 'number_of_samples_per_class', None)
 
     if args.scenario == 'simple_mnist':

@@ -1,0 +1,21 @@
+analysis_freq: 10
+analyze_representations: true
+balanced: balanced
+cuda: 1
+epochs: 10
+experiment_name: test_order_analysis
+lr: 0.001
+minibatch_size: 32
+model_name: ViT64
+num_classes: 10
+num_random_orders: 0
+number_of_samples_per_class: 50
+optimizer: adam
+orders:
+- MTI
+output_dir: test_logs
+resized: resized
+scenario: short_mnist_omniglot_fmnist_svhn_cifar10_imagenet
+scenario_type: class_incremental
+strategy_name: Naive
+track_trajectory: true

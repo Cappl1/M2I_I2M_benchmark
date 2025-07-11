@@ -1,0 +1,38 @@
+# Single Task Experiment Configuration with Patch Analysis
+experiment: SingleTaskExperiment
+experiment_type: SingleTaskExperiment
+
+# Model configuration
+model_name: ViT64
+num_classes: 10
+lr: 0.0003
+momentum: 0.9
+optimizer: adam
+epochs: 50
+minibatch_size: 128
+hs: 250
+
+# Device configuration
+cuda: 0  # -1 for CPU, >= 0 for GPU ID
+
+# Task configuration
+dataset: cifar10  # Options: mnist, cifar10, fashion_mnist, omniglot, svhn, imagenet
+resized: resized
+balanced: balanced
+number_of_samples_per_class: 500
+
+# Strategy configuration
+strategy_name: Naive
+
+# Standard analysis configuration
+analysis_freq: 10  # Run layer analysis every N epochs
+
+# PATCH ANALYSIS CONFIGURATION
+patch_analysis: true  # Enable patch-level importance analysis
+patch_analysis_freq: 20  # Run patch analysis every N epochs (less frequent than standard)
+patch_analysis_max_batches: 100  # Number of batches to analyze for patch importance
+
+# Output configuration
+output_dir: logs
+save_model: true
+use_tensorboard: false

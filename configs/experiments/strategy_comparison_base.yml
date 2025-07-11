@@ -1,0 +1,56 @@
+# Strategy Comparison Experiment Configuration
+experiment_type: StrategyComparisonExperiment
+experiment_name: StrategyComparisonExperiment
+
+# Scenario configuration
+scenario_type:  class_incremental  # or  task_incremental
+scenario: short_mnist_omniglot_fmnist_svhn_cifar10_imagenet
+resized: resized
+balanced: balanced
+number_of_samples_per_class: 500
+
+# Strategies to compare
+strategies: ["naive", "replay", "cumulative"]
+
+# Task order configuration
+test_multiple_orders: false  # Set true to test MTI, ITM, etc.
+default_order: MTI
+orders: ["MTI", "ITM", "EASY_TO_HARD"]  # Used if test_multiple_orders is true
+
+# Training parameters
+epochs: 40
+minibatch_size: 128
+lr: 0.0003
+optimizer: adam
+momentum: 0.9
+
+# Analysis parameters
+analyze_representations: true
+analysis_freq: 10  # Analyze every 10 epochs
+track_trajectory: true
+final_analysis: true
+compare_representations: true
+
+# Model parameters
+model_name: ViT64
+num_classes: 10
+
+# Strategy-specific configurations
+replay_config:
+  memory_size: 500         # Store 500 samples per task
+  replay_batch_ratio: 0.5  # 50% of batch from memory, 50% current task
+
+cumulative_config:
+  # No special config needed - trains on all data
+
+kaizen_config:
+  memory_size: 500
+  ssl_method: simclr
+  kd_weight: 1.0
+  ssl_weight: 1.0
+
+# Device configuration
+cuda: 2  # Use GPU 2, set to -1 for CPU
+
+# Output configuration
+output_dir: logs/strategy_comparison 
