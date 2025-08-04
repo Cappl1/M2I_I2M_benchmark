@@ -146,3 +146,5 @@ out
 
 run_ares_loop.sh
 run_experiment.sh
+
+/results
