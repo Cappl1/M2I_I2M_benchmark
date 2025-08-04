@@ -1,4 +1,4 @@
-"""Binary task pairs experiment with evolution tracking - FIXED VERSION."""
+"""Binary task pairs experiment with evolution tracking AND patch analysis - FULL VERSION."""
 
 import torch
 import torch.nn as nn
@@ -12,7 +12,7 @@ from core.experiment import BaseExperiment
 
 
 class BinaryPairsExperiment(BaseExperiment):
-    """Train on pairs of tasks and track representation evolution."""
+    """Train on pairs of tasks and track representation evolution with optional patch analysis."""
     
     def setup(self):
         """Setup experiment components."""
@@ -37,6 +37,17 @@ class BinaryPairsExperiment(BaseExperiment):
         # Use the SAME analyzer as single task experiment
         from analysis.vit_class_projection import ViTClassProjectionAnalyzer
         self.analyzer = ViTClassProjectionAnalyzer(self.model, str(self.device))
+        
+        # ADD PATCH ANALYSIS SUPPORT
+        self.enable_patch_analysis = self.config.get('patch_analysis', False)
+        if self.enable_patch_analysis:
+            print("  → Patch-level analysis ENABLED for binary pairs")
+            from analysis.patch_importance_analyzer import ViTPatchImportanceAnalyzer
+            self.patch_analyzer = ViTPatchImportanceAnalyzer(self.model, str(self.device))
+            self.patch_analysis_freq = self.config.get('patch_analysis_freq', 20)
+        else:
+            self.patch_analyzer = None
+            print("  → Patch-level analysis DISABLED")
     
     def _build_binary_scenario(self):
         """Build a scenario specifically for binary pairs experiments with two different datasets."""
@@ -183,7 +194,13 @@ class BinaryPairsExperiment(BaseExperiment):
         analysis_freq = self.config.get('analysis_freq', 10)
         scenario_type = self.config.get('scenario_type', 'class_incremental')
         
-        print(f"\n=== Training on Tasks {task_x} and {task_y} ({scenario_type}) ===")
+        # Get dataset names for better logging
+        dataset_a = self.config.get('dataset_a', 'cifar10')
+        dataset_b = self.config.get('dataset_b', 'mnist')
+        
+        print(f"\n=== Training on {dataset_a.upper()} → {dataset_b.upper()} ({scenario_type}) ===")
+        if self.enable_patch_analysis:
+            print(f"  → Patch analysis will run every {self.patch_analysis_freq} epochs")
         
         # Get task experiences
         train_x = self.scenario.train_stream[task_x]
@@ -191,38 +208,86 @@ class BinaryPairsExperiment(BaseExperiment):
         test_x = self.scenario.test_stream[task_x]
         test_y = self.scenario.test_stream[task_y]
         
-        print(f"Task {task_x} classes: {train_x.classes_in_this_experience}")
-        print(f"Task {task_y} classes: {train_y.classes_in_this_experience}")
+        print(f"Task {task_x} ({dataset_a}) classes: {train_x.classes_in_this_experience}")
+        print(f"Task {task_y} ({dataset_b}) classes: {train_y.classes_in_this_experience}")
+        
+        # CREATE PATCH ANALYSIS SUMMARY if enabled
+        if self.enable_patch_analysis:
+            patch_summary = self._create_patch_summary(dataset_a, dataset_b, scenario_type)
+        else:
+            patch_summary = None
         
         # Sequential training: Task X first, then Task Y
-        self._train_sequential(train_x, train_y, test_x, test_y, task_x, task_y, analysis_freq, scenario_type)
+        self._train_sequential(train_x, train_y, test_x, test_y, task_x, task_y, analysis_freq, scenario_type, dataset_a, dataset_b, patch_summary)
         
         # Store results
         self.results['task_pair'] = [task_x, task_y]
+        self.results['datasets'] = [dataset_a, dataset_b]
         self.results['scenario_type'] = scenario_type
+        self.results['patch_analysis_enabled'] = self.enable_patch_analysis
+        
+        # SAVE FINAL PATCH SUMMARY
+        if self.enable_patch_analysis and patch_summary:
+            patch_summary_file = self.output_dir / 'patch_analysis' / 'patch_importance_summary.json'
+            with open(patch_summary_file, 'w') as f:
+                json.dump(patch_summary, f, indent=2)
+            print(f"  → Patch analysis summary saved to {patch_summary_file}")
         
         self.save_results()
         return self.results
     
-    def _train_sequential(self, train_x, train_y, test_x, test_y, task_x, task_y, analysis_freq, scenario_type):
+    def _create_patch_summary(self, dataset_a, dataset_b, scenario_type):
+        """Create patch analysis summary structure."""
+        return {
+            'datasets': [dataset_a, dataset_b],
+            'scenario_type': scenario_type,
+            'config': {
+                'patch_analysis_freq': self.patch_analysis_freq,
+                'num_classes': self.config.get('num_classes', 10),
+                'epochs': self.config.get('epochs', 50),
+                'patch_analysis_max_batches': self.config.get('patch_analysis_max_batches', 100)
+            },
+            'phases': {
+                'phase1': {
+                    'dataset': dataset_a, 
+                    'task_id': 0,
+                    'epochs_analyzed': []
+                },
+                'phase2': {
+                    'dataset': dataset_b, 
+                    'task_id': 1,
+                    'epochs_analyzed': []
+                }
+            }
+        }
+    
+    def _train_sequential(self, train_x, train_y, test_x, test_y, task_x, task_y, analysis_freq, scenario_type, dataset_a, dataset_b, patch_summary):
         """Train sequentially: Task X first, then Task Y, with continual evaluation."""
-        print(f"\n--- Sequential Training ({scenario_type}) ---")
+        print(f"\n--- Sequential Training with {'Patch Analysis' if self.enable_patch_analysis else 'Representation Analysis'} ({scenario_type}) ---")
+        
+        # CREATE PATCH ANALYSIS DIRECTORY if enabled
+        if self.enable_patch_analysis:
+            patch_dir = self.output_dir / 'patch_analysis'
+            patch_dir.mkdir(exist_ok=True)
         
         # Phase 1: Train on Task X only
-        print(f"\nPhase 1: Training on Task {task_x} only")
-        self._train_single_task_phase(train_x, test_x, task_x, "phase1", analysis_freq, phase=1)
+        print(f"\nPhase 1: Training on {dataset_a.upper()} only")
+        self._train_single_task_phase(
+            train_x, test_x, task_x, "phase1", analysis_freq, 
+            phase=1, dataset_name=dataset_a, patch_summary=patch_summary
+        )
         
         # Phase 2: Train on Task Y, evaluate on both tasks (THIS IS THE KEY FIX)
-        print(f"\nPhase 2: Training on Task {task_y}, evaluating forgetting on Task {task_x}")
+        print(f"\nPhase 2: Training on {dataset_b.upper()}, evaluating forgetting on {dataset_a.upper()}")
         evolution_results = self._train_single_task_phase(
             train_y, test_y, task_y, "phase2", analysis_freq, phase=2, 
-            also_test_on=(test_x, task_x)
+            also_test_on=(test_x, task_x), dataset_name=dataset_b, patch_summary=patch_summary
         )
         
         self.results['evolution'] = evolution_results
     
-    def _train_single_task_phase(self, train_exp, test_exp, task_id, phase_name, analysis_freq, phase=1, also_test_on=None):
-        """Train on a single task phase."""
+    def _train_single_task_phase(self, train_exp, test_exp, task_id, phase_name, analysis_freq, phase=1, also_test_on=None, dataset_name=None, patch_summary=None):
+        """Train on a single task phase with optional patch analysis."""
         optimizer = self._build_optimizer(self.model)
         criterion = nn.CrossEntropyLoss()
         
@@ -268,7 +333,7 @@ class BinaryPairsExperiment(BaseExperiment):
             
             print(log_msg)
             
-            # Periodic analysis - FIXED: Check every epoch, not just at the end
+            # Periodic representation analysis
             if (epoch + 1) % analysis_freq == 0:
                 print(f"  → Running layer analysis for {phase_name}...")
                 
@@ -302,6 +367,42 @@ class BinaryPairsExperiment(BaseExperiment):
                     json.dump(repr_epoch, f, indent=2)
                 
                 print(f"  → Analysis saved to {analysis_file}")
+            
+            # PATCH ANALYSIS (potentially different frequency)
+            # PATCH ANALYSIS (potentially different frequency)
+            if self.enable_patch_analysis and (epoch + 1) % self.patch_analysis_freq == 0:
+                print(f"  → Running patch analysis for {phase_name}...")
+                try:
+                    # Always analyze current task
+                    test_loader = DataLoader(test_exp.dataset, batch_size=128, shuffle=False)
+                    patch_results = self._run_patch_analysis(test_loader, epoch + 1, f"{dataset_name}_{phase_name}")
+                    
+                    # In phase 2, ALSO analyze previous task to see patch forgetting!
+                    if also_test_on:
+                        print(f"  → Running patch analysis for previous task (forgetting analysis)...")
+                        prev_test_loader = DataLoader(also_test_on[0].dataset, batch_size=128, shuffle=False)
+                        prev_patch_results = self._run_patch_analysis(
+                            prev_test_loader, 
+                            epoch + 1, 
+                            f"prev_task_{also_test_on[1]}_{phase_name}"
+                        )
+                    
+                    # UPDATE PATCH SUMMARY
+                    if patch_results and patch_summary:
+                        patch_summary['phases'][phase_name]['epochs_analyzed'].append({
+                            'epoch': epoch + 1,
+                            'eval_accuracy': current_acc,
+                            'prev_task_accuracy': prev_acc if also_test_on else None,
+                            'summary_stats': patch_results.get('statistics', {}),
+                            'prev_task_patch_stats': prev_patch_results.get('statistics', {}) if also_test_on else None
+                        })
+                        
+                        print(f"  → Patch analysis completed for {dataset_name}")
+                
+                except Exception as e:
+                    print(f"  → Patch analysis failed: {e}")
+                    import traceback
+                    traceback.print_exc()
         
         return evolution_results
     
@@ -324,6 +425,37 @@ class BinaryPairsExperiment(BaseExperiment):
         except Exception as e:
             print(f"  → Analysis failed for task {task_id}: {e}")
             return {'error': str(e)}
+    
+    def _run_patch_analysis(self, test_loader, epoch, dataset_phase_name):
+        """Run detailed patch-level importance analysis."""
+        if not self.patch_analyzer:
+            return None
+        
+        # Run patch importance analysis
+        max_batches = self.config.get('patch_analysis_max_batches', 100)
+        patch_results = self.patch_analyzer.analyze_patch_importance(
+            test_loader,
+            num_classes=self.config.get('num_classes', 10),
+            max_batches=max_batches
+        )
+        
+        # Create visualizations
+        patch_analysis_dir = self.output_dir / 'patch_analysis'
+        self.patch_analyzer.visualize_patch_importance(
+            patch_results,
+            patch_analysis_dir,
+            epoch,
+            dataset_phase_name
+        )
+        
+        # Save detailed results
+        self.patch_analyzer.save_detailed_results(
+            patch_results,
+            patch_analysis_dir,
+            epoch
+        )
+        
+        return patch_results
     
     def _train_epoch_on_loader(self, loader, optimizer, criterion):
         """Train one epoch on a given data loader."""

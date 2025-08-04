@@ -5,6 +5,7 @@ import yaml
 from pathlib import Path
 from typing import Dict, Any, Optional
 
+
 from paths import ROOT_PATH
 
 
@@ -68,6 +69,9 @@ def create_experiment_from_config(config: Dict[str, Any]):
     elif experiment_type == 'BinaryPairsExperiment':
         from experiments.binary_pairs_exp import BinaryPairsExperiment
         return BinaryPairsExperiment(config)
+    elif experiment_type == 'StrategyBinaryPairsExperiment':  # ADD THIS BLOCK
+        from experiments.strategy_binary_pairs_exp import StrategyBinaryPairsExperiment
+        return StrategyBinaryPairsExperiment(config)
     elif experiment_type == 'StrategyComparisonExperiment':
         from experiments.strategy_comparison import StrategyComparisonExperiment
         return StrategyComparisonExperiment(config)

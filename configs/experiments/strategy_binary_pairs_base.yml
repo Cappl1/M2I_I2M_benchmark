@@ -1,0 +1,45 @@
+# Strategy Binary Pairs Experiment Configuration
+experiment_name: strategy_binary_pairs
+experiment_type: StrategyBinaryPairsExperiment
+
+# Model configuration
+model_name: ViT64
+num_classes: 20  # Will be set dynamically
+lr: 0.0003
+momentum: 0.9
+optimizer: adam
+epochs: 50
+minibatch_size: 128
+hs: 250
+
+# Device configuration
+cuda: 1
+
+# Scenario configuration
+scenario_type: task_incremental
+resized: resized
+balanced: balanced
+number_of_samples_per_class: 500
+
+# Binary-pairs specifics
+dataset_a: mnist
+dataset_b: fashion_mnist
+task_pair: [0, 1]
+
+# Strategy configuration (will be overridden)
+strategy_name: Naive
+
+# Analysis configuration
+analysis_freq: 10
+analyze_representations: true
+
+# Patch analysis configuration
+patch_analysis: true
+patch_analysis_freq: 20
+patch_analysis_max_batches: 50
+
+# Output configuration
+output_dir: logs
+save_model: false
+use_tensorboard: false 
+

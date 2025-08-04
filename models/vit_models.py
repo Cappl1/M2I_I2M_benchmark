@@ -39,11 +39,12 @@ class ViT64SingleHead(nn.Module):
         return self.vit(x)
 
 
-class ViT64MultiHead(MultiTaskModule):
-    """ViT for task-incremental learning (10 classes per task)"""
+class ViT64MultiHead(nn.Module):
+    """ViT for task-incremental learning with our own clean multi-head implementation"""
     
     def __init__(self,
                  num_classes_per_task=10,
+                 num_tasks=2,  # Default to 2 tasks for binary pairs
                  patch_size=8,
                  embed_dim=384,
                  depth=12,
@@ -52,12 +53,16 @@ class ViT64MultiHead(MultiTaskModule):
                  dropout=0.1):
         super().__init__()
         
+        self.num_classes_per_task = num_classes_per_task
+        self.num_tasks = num_tasks
+        self.embed_dim = embed_dim
+        
         # Create ViT without classification head
         self.vit = VisionTransformer(
             img_size=64,
             patch_size=patch_size,
             in_chans=3,
-            num_classes=0,  # No head, we'll use MultiHeadClassifier
+            num_classes=0,  # No head, we'll add our own
             embed_dim=embed_dim,
             depth=depth,
             num_heads=num_heads,
@@ -68,19 +73,55 @@ class ViT64MultiHead(MultiTaskModule):
             global_pool='',  # Don't pool, we'll handle it
         )
         
-        # Multi-head classifier for different tasks
-        self.classifier = MultiHeadClassifier(embed_dim, initial_out_features=num_classes_per_task)
+        # Our own clean multi-head implementation
+        self.heads = nn.ModuleList([
+            nn.Linear(embed_dim, num_classes_per_task) 
+            for _ in range(num_tasks)
+        ])
         
-    def forward_single_task(self, x: torch.Tensor, task_label: int) -> torch.Tensor:
-        # Get CLS token representation
-        x = self.vit.forward_features(x)
-        cls_token = x[:, 0]  # Extract CLS token
+        print(f"  → Created ViT with {num_tasks} heads, {num_classes_per_task} classes each")
         
-        # Pass through task-specific head
-        return self.classifier(cls_token, task_label)
+    def forward_single_task(self, x: torch.Tensor, task_id: int) -> torch.Tensor:
+        """Forward for a specific task - this is what we'll use for training/eval"""
+        # Get features from ViT
+        features = self.vit.forward_features(x)  # (batch, num_tokens, embed_dim)
+        cls_token = features[:, 0]  # Extract CLS token (batch, embed_dim)
+        
+        # Pass through specific task head
+        if task_id >= len(self.heads):
+            raise ValueError(f"Task ID {task_id} >= number of heads {len(self.heads)}")
+        
+        return self.heads[task_id](cls_token)
     
-    def forward(self, x, task_labels):
-        """Forward for potentially mixed batches"""
-        x = self.vit.forward_features(x)
-        cls_token = x[:, 0]
-        return self.classifier(cls_token, task_labels)
+    def forward_head(self, x: torch.Tensor, task_id: int) -> torch.Tensor:
+        """Alias for forward_single_task for compatibility"""
+        return self.forward_single_task(x, task_id)
+    
+    def forward(self, x, task_id=None):
+        """Default forward - use task 0 if no task specified"""
+        if task_id is None:
+            task_id = 0
+        return self.forward_single_task(x, task_id)
+    
+    def get_head_weights(self, task_id: int) -> torch.Tensor:
+        """Get weights for a specific task head - for analysis"""
+        if task_id >= len(self.heads):
+            raise ValueError(f"Task ID {task_id} >= number of heads {len(self.heads)}")
+        return self.heads[task_id].weight
+    
+    def add_head(self, num_classes: int = None) -> int:
+        """Add a new head for a new task (if needed for dynamic scenarios)"""
+        if num_classes is None:
+            num_classes = self.num_classes_per_task
+        
+        new_head = nn.Linear(self.embed_dim, num_classes)
+        self.heads.append(new_head)
+        
+        # Move to same device as existing heads
+        if len(self.heads) > 1:
+            device = next(self.heads[0].parameters()).device
+            new_head.to(device)
+        
+        new_task_id = len(self.heads) - 1
+        print(f"  → Added head for task {new_task_id} with {num_classes} classes")
+        return new_task_id

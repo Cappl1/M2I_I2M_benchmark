@@ -7,6 +7,8 @@ from pathlib import Path
 
 from config.utils import load_experiment_config, create_experiment_from_config
 
+from experiments.strategy_binary_pairs_exp import StrategyBinaryPairsExperiment
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -91,12 +93,13 @@ Available strategies:
             if experiment_type:
                 # Convert to the format expected by our file naming
                 type_mapping = {
-                    'OrderAnalysisExperiment': 'order_analysis',
-                    'SingleTaskExperiment': 'single_task', 
-                    'BinaryPairsExperiment': 'binary_pairs',
-                    'TaskIncrementalExperiment': 'task_incremental',
-                    'StrategyComparisonExperiment': 'strategy_comparison' 
-                }
+                'OrderAnalysisExperiment': 'order_analysis',
+                'SingleTaskExperiment': 'single_task', 
+                'BinaryPairsExperiment': 'binary_pairs',
+                'TaskIncrementalExperiment': 'task_incremental',
+                'StrategyBinaryPairsExperiment': 'strategy_binary_pairs',  # Fix this line
+                'StrategyComparisonExperiment': 'strategy_comparison' 
+            }
                 experiment_type = type_mapping.get(experiment_type, experiment_type)
         except Exception as e:
             print(f"Warning: Could not read experiment_type from config: {e}")

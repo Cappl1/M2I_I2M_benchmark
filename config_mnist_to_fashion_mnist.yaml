@@ -1,0 +1,44 @@
+# Binary Pairs with Patch Analysis Configuration
+experiment: BinaryPairsExperiment
+experiment_type: BinaryPairsExperiment
+
+# Model configuration
+model_name: ViT64
+num_classes: 20  # Class incremental: 10 + 10
+lr: 0.0003
+momentum: 0.9
+optimizer: adam
+epochs: 50
+minibatch_size: 128
+hs: 250
+
+# Device configuration  
+cuda: 0
+
+# Binary pairs configuration
+dataset_a: mnist
+dataset_b: fashion_mnist
+scenario_type: class_incremental
+task_pair: [0, 1]
+
+# Dataset configuration
+resized: resized
+balanced: balanced
+number_of_samples_per_class: 500
+
+# Strategy configuration
+strategy_name: Naive
+
+# Analysis configuration
+analysis_freq: 10
+analyze_representations: true
+
+# PATCH ANALYSIS - ENABLED (requires modification to BinaryPairsExperiment)
+patch_analysis: true
+patch_analysis_freq: 10
+patch_analysis_max_batches: 100
+
+# Output configuration
+output_dir: logs
+save_model: false
+use_tensorboard: false

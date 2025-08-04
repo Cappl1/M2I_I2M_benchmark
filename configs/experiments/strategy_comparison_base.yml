@@ -3,7 +3,7 @@ experiment_type: StrategyComparisonExperiment
 experiment_name: StrategyComparisonExperiment
 
 # Scenario configuration
-scenario_type:  class_incremental  # or  task_incremental
+scenario_type:  task_incremental  # or  task_incremental
 scenario: short_mnist_omniglot_fmnist_svhn_cifar10_imagenet
 resized: resized
 balanced: balanced

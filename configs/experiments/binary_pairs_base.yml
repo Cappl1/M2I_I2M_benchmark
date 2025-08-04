@@ -16,7 +16,7 @@ hs: 250
 cuda: 0  # -1 for CPU, >= 0 for GPU ID
 
 # Scenario configuration
-scenario_type: class_incremental
+scenario_type: task_incremental
 resized: resized
 balanced: balanced
 number_of_samples_per_class: 500

@@ -1,0 +1,297 @@
+"""Simple binary pairs experiment A→B with patch analysis."""
+
+import torch
+import torch.nn as nn
+from typing import Dict, Any, List
+from torch.utils.data import DataLoader
+import csv
+import json
+from pathlib import Path
+
+from core.experiment import BaseExperiment
+
+
+class StrategyBinaryPairsExperiment(BaseExperiment):
+    """Simple binary pairs experiment: Train on A, then train on B, analyze forgetting."""
+    
+    def setup(self):
+        """Setup experiment components."""
+        self.config['num_classes'] = 20  # 10 classes from each dataset
+        self.model = self.build_model()
+        
+        # Build strategy
+        self.strategy = self._build_strategy()
+        
+        # Setup patch analysis
+        self.enable_patch_analysis = self.config.get('patch_analysis', True)
+        if self.enable_patch_analysis:
+            print("  → Patch analysis ENABLED")
+            from analysis.patch_importance_analyzer import ViTPatchImportanceAnalyzer
+            self.patch_analyzer = ViTPatchImportanceAnalyzer(self.model, str(self.device))
+            self.patch_analysis_freq = self.config.get('patch_analysis_freq', 10)
+            self.patch_during_training = self.config.get('patch_analysis_during_training', True)
+        else:
+            self.patch_analyzer = None
+    
+    def _build_strategy(self):
+        """Build strategy based on config."""
+        from core.strategies import NaiveStrategy, ReplayStrategy, CumulativeStrategy
+        
+        strategy_name = self.config.get('strategy_name', 'Naive')
+        
+        if strategy_name == 'Naive':
+            return NaiveStrategy(self.model, self.config, str(self.device))
+        elif strategy_name == 'Replay':
+            return ReplayStrategy(self.model, self.config, str(self.device))
+        elif strategy_name == 'Cumulative':
+            return CumulativeStrategy(self.model, self.config, str(self.device))
+        else:
+            raise ValueError(f"Unknown strategy: {strategy_name}")
+    
+    def _load_dataset(self, dataset_name):
+        """Load a dataset by name."""
+        dataset_name = dataset_name.lower()
+        
+        if dataset_name == 'mnist':
+            from scenarios.datasets.mnist import load_mnist_with_resize
+            return load_mnist_with_resize(
+                balanced=self.config.get('balanced', False),
+                number_of_samples_per_class=self.config.get('number_of_samples_per_class')
+            )
+        elif dataset_name == 'fashion_mnist':
+            from scenarios.datasets.fashion_mnist import load_fashion_mnist_with_resize
+            return load_fashion_mnist_with_resize(
+                balanced=self.config.get('balanced', False),
+                number_of_samples_per_class=self.config.get('number_of_samples_per_class')
+            )
+        elif dataset_name == 'cifar10':
+            from scenarios.datasets.cifar import load_resized_cifar10
+            return load_resized_cifar10(
+                balanced=self.config.get('balanced', False),
+                number_of_samples_per_class=self.config.get('number_of_samples_per_class')
+            )
+        elif dataset_name == 'svhn':
+            from scenarios.datasets.svhn import load_svhn_resized
+            return load_svhn_resized(
+                balanced=self.config.get('balanced', False),
+                number_of_samples_per_class=self.config.get('number_of_samples_per_class')
+            )
+        else:
+            raise ValueError(f"Unknown dataset: {dataset_name}")
+    
+    def _relabel_dataset(self, dataset, offset):
+        """Relabel dataset classes by adding an offset."""
+        class RelabeledDataset:
+            def __init__(self, base_dataset, offset):
+                self.base_dataset = base_dataset
+                self.offset = offset
+                if hasattr(base_dataset, 'targets'):
+                    self.targets = [t + offset for t in base_dataset.targets]
+                else:
+                    self.targets = None
+            
+            def __len__(self):
+                return len(self.base_dataset)
+            
+            def __getitem__(self, idx):
+                item = self.base_dataset[idx]
+                if len(item) == 2:
+                    x, y = item
+                    return x, y + self.offset
+                elif len(item) == 3:
+                    x, y, task_id = item
+                    return x, y + self.offset, task_id
+                else:
+                    raise ValueError(f"Unexpected item format: {len(item)} elements")
+        
+        return RelabeledDataset(dataset, offset)
+    
+    def _train_task_with_analysis(self, train_dataset, test_datasets, task_id, task_name, patch_dir):
+        """Train a task with periodic patch analysis by running multiple shorter training sessions."""
+        total_epochs = self.config.get('epochs', 50)
+        analysis_freq = self.patch_analysis_freq
+        
+        # Save original epoch count
+        original_epochs = self.config['epochs']
+        
+        # Train in chunks of analysis_freq epochs
+        epochs_completed = 0
+        
+        while epochs_completed < total_epochs:
+            # Calculate how many epochs to train in this chunk
+            epochs_this_chunk = min(analysis_freq, total_epochs - epochs_completed)
+            
+            print(f"  → Training epochs {epochs_completed + 1}-{epochs_completed + epochs_this_chunk}...")
+            
+            # Temporarily set epochs for this chunk
+            self.config['epochs'] = epochs_this_chunk
+            
+            # Train for this chunk
+            self.strategy.train_task(train_dataset, task_id)
+            
+            epochs_completed += epochs_this_chunk
+            
+            # Run patch analysis after this chunk (if enabled and not the final chunk)
+            if (self.enable_patch_analysis and self.patch_during_training and 
+                epochs_completed < total_epochs):
+                
+                print(f"  → Running patch analysis at epoch {epochs_completed}...")
+                
+                # Run analysis on all test datasets we want to track
+                for dataset_name, test_dataset in test_datasets.items():
+                    analysis_name = f"{task_name}_epoch{epochs_completed:02d}_{dataset_name}"
+                    self._run_patch_analysis(test_dataset, patch_dir, analysis_name, epochs_completed)
+        
+        # Restore original epoch count
+        self.config['epochs'] = original_epochs
+    
+    def run(self) -> Dict[str, Any]:
+        """Run simple binary pairs training A→B."""
+        self.setup()
+        
+        strategy_name = self.config.get('strategy_name', 'Naive')
+        dataset_a = self.config.get('dataset_a', 'mnist')
+        dataset_b = self.config.get('dataset_b', 'fashion_mnist')
+        
+        print(f"\n=== {strategy_name}: {dataset_a.upper()} → {dataset_b.upper()} ===")
+        if hasattr(self.strategy, 'memory_size'):
+            try:
+                memory_size = getattr(self.strategy, 'memory_size', None)
+                if memory_size is not None:
+                    print(f"  → Memory size: {memory_size} samples per task")
+            except:
+                pass
+        
+        # Load datasets
+        train_a, test_a = self._load_dataset(dataset_a)
+        train_b, test_b = self._load_dataset(dataset_b)
+        
+        # Relabel dataset B to classes 10-19
+        train_b = self._relabel_dataset(train_b, 10)
+        test_b = self._relabel_dataset(test_b, 10)
+        
+        print(f"Dataset A ({dataset_a}): classes 0-9")
+        print(f"Dataset B ({dataset_b}): classes 10-19")
+        
+        # Create results tracking
+        self.results = {
+            'strategy_name': strategy_name,
+            'dataset_a': dataset_a,
+            'dataset_b': dataset_b,
+            'task_results': {}
+        }
+        
+        # Create CSV logger
+        log_file = self.output_dir / f'training_log_{strategy_name.lower()}.csv'
+        self._create_csv_logger(log_file)
+        
+        # Create patch analysis directory
+        if self.enable_patch_analysis:
+            patch_dir = self.output_dir / 'patch_analysis'
+            patch_dir.mkdir(exist_ok=True)
+        
+        # PHASE 1: Train on Dataset A
+        print(f"\n--- Phase 1: Training on {dataset_a.upper()} ---")
+        
+        # Train with periodic analysis
+        test_datasets_phase1 = {dataset_a: test_a}
+        self._train_task_with_analysis(train_a, test_datasets_phase1, 0, f"phase1_{dataset_a}", patch_dir)
+        
+        # Evaluate after Phase 1
+        acc_a_phase1 = self.strategy._evaluate_dataset(test_a)
+        acc_b_phase1 = 0.0  # Haven't seen B yet
+        
+        print(f"After Phase 1: {dataset_a}={acc_a_phase1:.1f}%, {dataset_b}={acc_b_phase1:.1f}%")
+        
+        # Log Phase 1
+        self._log_results(log_file, 1, acc_a_phase1, acc_b_phase1)
+        
+        # Final patch analysis after Phase 1
+        if self.enable_patch_analysis:
+            print("  → Running final patch analysis after Phase 1...")
+            self._run_patch_analysis(test_a, patch_dir, f"phase1_{dataset_a}_final", epoch=50)
+        
+        # PHASE 2: Train on Dataset B
+        print(f"\n--- Phase 2: Training on {dataset_b.upper()} ---")
+        
+        # Train with periodic analysis (track both datasets now)
+        test_datasets_phase2 = {dataset_a: test_a, dataset_b: test_b}
+        self._train_task_with_analysis(train_b, test_datasets_phase2, 1, f"phase2_{dataset_b}", patch_dir)
+        
+        # Evaluate after Phase 2
+        acc_a_phase2 = self.strategy._evaluate_dataset(test_a)  # Check forgetting
+        acc_b_phase2 = self.strategy._evaluate_dataset(test_b)
+        
+        print(f"After Phase 2: {dataset_a}={acc_a_phase2:.1f}%, {dataset_b}={acc_b_phase2:.1f}%")
+        
+        # Calculate forgetting
+        forgetting = acc_a_phase1 - acc_a_phase2
+        average_acc = (acc_a_phase2 + acc_b_phase2) / 2
+        
+        print(f"Forgetting: {forgetting:.1f}%, Average: {average_acc:.1f}%")
+        
+        # Log Phase 2
+        self._log_results(log_file, 2, acc_a_phase2, acc_b_phase2, forgetting, average_acc)
+        
+        # Final patch analysis after Phase 2
+        if self.enable_patch_analysis:
+            print("  → Running final patch analysis after Phase 2...")
+            self._run_patch_analysis(test_a, patch_dir, f"phase2_{dataset_a}_forgetting_final", epoch=50)
+            self._run_patch_analysis(test_b, patch_dir, f"phase2_{dataset_b}_final", epoch=50)
+        
+        # Store final results
+        self.results['final_accuracies'] = {
+            f'task_0_{dataset_a}': acc_a_phase2,
+            f'task_1_{dataset_b}': acc_b_phase2,
+            'forgetting': forgetting,
+            'average': average_acc
+        }
+        
+        self.save_results()
+        return self.results
+    
+    def _create_csv_logger(self, log_file: Path):
+        """Create CSV logger."""
+        with open(log_file, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(['phase', 'strategy', 'task_0_acc', 'task_1_acc', 'forgetting', 'average_acc'])
+    
+    def _log_results(self, log_file: Path, phase: int, acc_a: float, acc_b: float, 
+                    forgetting: float = 0.0, average: float = None):
+        """Log results to CSV."""
+        strategy_name = self.config.get('strategy_name', 'Naive')
+        if average is None:
+            average = (acc_a + acc_b) / 2
+        
+        with open(log_file, 'a', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow([phase, strategy_name, f"{acc_a:.2f}", f"{acc_b:.2f}", 
+                           f"{forgetting:.2f}", f"{average:.2f}"])
+    
+    def _run_patch_analysis(self, test_dataset, patch_dir: Path, analysis_name: str, epoch: int = 1):
+        """Run patch analysis on a dataset."""
+        if not self.enable_patch_analysis or not self.patch_analyzer:
+            return
+        
+        try:
+            test_loader = DataLoader(test_dataset, batch_size=128, shuffle=False)
+            patch_results = self.patch_analyzer.analyze_patch_importance(
+                test_loader,
+                num_classes=self.config.get('num_classes', 20),
+                max_batches=self.config.get('patch_analysis_max_batches', 20)
+            )
+            
+            # Create visualizations
+            self.patch_analyzer.visualize_patch_importance(
+                patch_results, patch_dir, epoch, analysis_name
+            )
+            
+            # Save detailed results
+            self.patch_analyzer.save_detailed_results(patch_results, patch_dir, epoch)
+            
+            print(f"  → Patch analysis completed: {analysis_name}")
+            
+        except Exception as e:
+            print(f"  → Patch analysis failed for {analysis_name}: {e}")
+            import traceback
+            traceback.print_exc()

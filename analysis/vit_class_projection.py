@@ -132,72 +132,67 @@ class ViTClassProjectionAnalyzer:
         return results
     
     def analyze_task_representations(self, 
-                                   dataloader,
-                                   task_id: int,
-                                   num_classes_per_task: int = 10,
-                                   max_batches: int = 50,
-                                   sample_tokens: bool = True):
-        """Analyze representations for a specific task during CL
-        
-        Args:
-            dataloader: Data loader for the task
-            task_id: Current task ID
-            num_classes_per_task: Number of classes per task
-            max_batches: Maximum number of batches to analyze (for speed)
-            sample_tokens: If True, only analyze a subset of image tokens
-        """
+                                dataloader,
+                                task_id: int,
+                                num_classes_per_task: int = 10,
+                                max_batches: int = 50,
+                                sample_tokens: bool = True):
+        """Analyze representations for a specific task during CL"""
         self.register_hooks()
         
         all_results = defaultdict(list)
         batch_count = 0
         
         try:
-            with torch.inference_mode():  # OPTIMIZATION 3: Use inference_mode
+            with torch.inference_mode():
                 for batch_idx, batch in enumerate(dataloader):
-                    # OPTIMIZATION 4: Limit number of batches
                     if batch_idx >= max_batches:
                         break
                         
                     inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
                     
-                    # Forward pass (hooks will save representations)
-                    _ = self.model(inputs)
+                    # Forward pass - handle our clean multi-head implementation
+                    if hasattr(self.model, 'forward_single_task'):
+                        # Our clean multi-head implementation
+                        _ = self.model.forward_single_task(inputs, task_id)
+                    elif hasattr(self.model, 'forward_head'):
+                        _ = self.model.forward_head(inputs, task_id)
+                    else:
+                        # Single-head model
+                        _ = self.model(inputs)
                     
-                    # Get embedding matrix (classifier weights)
+                    # Get embedding matrix using our clean implementation
                     embed_matrix: Optional[torch.Tensor] = None
-                    if hasattr(self.model, 'classifier'):  # Multi-head
-                        # For task-incremental with MultiHeadClassifier
-                        classifier_attr = getattr(self.model, 'classifier')
-                        if hasattr(classifier_attr, 'classifiers'):
-                            classifiers = getattr(classifier_attr, 'classifiers')
-                            if hasattr(classifiers, '__getitem__'):
-                                try:
-                                    task_classifier = classifiers[str(task_id)]
-                                    # IncrementalClassifier has a 'classifier' Linear layer inside
-                                    if hasattr(task_classifier, 'classifier'):
-                                        embed_matrix = getattr(getattr(task_classifier, 'classifier'), 'weight')
-                                    elif hasattr(task_classifier, 'weight'):
-                                        embed_matrix = getattr(task_classifier, 'weight')
-                                    else:
-                                        # Try to find the linear layer
-                                        for module in task_classifier.modules():
-                                            if isinstance(module, torch.nn.Linear):
-                                                embed_matrix = module.weight
-                                                break
-                                except (KeyError, IndexError, TypeError):
-                                    pass
-                    elif hasattr(self.model, 'head') and hasattr(getattr(self.model, 'head'), 'weight'):
-                        # For class-incremental with single head
-                        embed_matrix = getattr(getattr(self.model, 'head'), 'weight')
-                        # Only use relevant classes for this task
+                    
+                    # Handle our clean multi-head implementation
+                    if hasattr(self.model, 'heads'):
+                        try:
+                            embed_matrix = self.model.heads[task_id].weight
+                            print(f"  → Found head {task_id} with shape {embed_matrix.shape}")
+                        except (IndexError, AttributeError) as e:
+                            print(f"  → Error accessing head {task_id}: {e}")
+                            continue
+                    
+                    # Handle our clean single-head implementation  
+                    elif hasattr(self.model, 'head') and hasattr(self.model.head, 'weight'):
+                        embed_matrix = self.model.head.weight
+                        # For class-incremental, slice to get relevant classes
                         start_idx = task_id * num_classes_per_task
                         end_idx = (task_id + 1) * num_classes_per_task
-                        if embed_matrix is not None and end_idx <= embed_matrix.shape[0]:
+                        if end_idx <= embed_matrix.shape[0]:
                             embed_matrix = embed_matrix[start_idx:end_idx]
                             labels = labels - start_idx  # Adjust labels to 0-9 range
-                    elif hasattr(self.model, 'fc') and hasattr(getattr(self.model, 'fc'), 'weight'):
-                        # Another common classifier name
-                        embed_matrix = getattr(getattr(self.model, 'fc'), 'weight')
+                            print(f"  → Using single head classes {start_idx}-{end_idx-1}")
+                    
+                    # Handle ViT head directly
+                    elif hasattr(self.model, 'vit') and hasattr(self.model.vit, 'head') and hasattr(self.model.vit.head, 'weight'):
+                        embed_matrix = self.model.vit.head.weight
+                        start_idx = task_id * num_classes_per_task
+                        end_idx = (task_id + 1) * num_classes_per_task
+                        if end_idx <= embed_matrix.shape[0]:
+                            embed_matrix = embed_matrix[start_idx:end_idx]
+                            labels = labels - start_idx
+                            print(f"  → Using ViT head classes {start_idx}-{end_idx-1}")
                     
                     if embed_matrix is None:
                         print("  → Warning: Could not find classifier weights, skipping batch")

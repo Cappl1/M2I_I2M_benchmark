@@ -160,7 +160,8 @@ class ViTPatchImportanceAnalyzer:
     def analyze_patch_importance(self,
                                dataloader,
                                num_classes: int = 10,
-                               max_batches: Optional[int] = None) -> Dict:
+                               max_batches: Optional[int] = None,
+                                task_id: Optional[int] = None) -> Dict:
         """
         Analyze importance of each patch position across the dataset.
         
@@ -184,11 +185,17 @@ class ViTPatchImportanceAnalyzer:
                     
                     inputs, labels = batch[0].to(self.device), batch[1].to(self.device)
                     
-                    # Forward pass
-                    _ = self.model(inputs)
+                    if task_id is not None and hasattr(self.model, 'forward_single_task'):
+                    # Use our clean multi-head implementation
+                        _ = self.model.forward_single_task(inputs, task_id)
+                    elif task_id is not None and hasattr(self.model, 'forward_head'):
+                        _ = self.model.forward_head(inputs, task_id)
+                    else:
+                        # Single-head model
+                        _ = self.model(inputs)
                     
                     # Get embedding matrix
-                    embed_matrix = self._get_embedding_matrix(num_classes)
+                    embed_matrix = self._get_embedding_matrix(num_classes, task_id)
                     if embed_matrix is None:
                         continue
                     
@@ -263,29 +270,53 @@ class ViTPatchImportanceAnalyzer:
         print(f"  → Completed patch analysis on {batch_count} batches")
         return results
     
-    def _get_embedding_matrix(self, num_classes: int) -> Optional[torch.Tensor]:
-        """Extract the classifier embedding matrix."""
-        if hasattr(self.model, 'classifier'):
-            if hasattr(self.model.classifier, 'weight'):
-                return self.model.classifier.weight[:num_classes]
+    def _get_embedding_matrix(self, num_classes: int, task_id: Optional[int] = None) -> Optional[torch.Tensor]:
+        """Extract the classifier embedding matrix for the specified task."""
+        
+        # Handle our clean multi-head implementation
+        if task_id is not None and hasattr(self.model, 'heads'):
+            try:
+                head = self.model.heads[task_id]
+                if hasattr(head, 'weight'):
+                    weight = head.weight
+                    print(f"  → Found head {task_id} with shape {weight.shape}")
+                    return weight[:num_classes] if weight.shape[0] >= num_classes else weight
+                else:
+                    print(f"  → Head {task_id} has no weight attribute")
+                    return None
+            except (IndexError, AttributeError) as e:
+                print(f"  → Error accessing head {task_id}: {e}")
+                return None
+        
+        # Handle our clean single-head implementation
         elif hasattr(self.model, 'head') and hasattr(self.model.head, 'weight'):
-            return self.model.head.weight[:num_classes]
-        elif hasattr(self.model, 'fc') and hasattr(self.model.fc, 'weight'):
-            return self.model.fc.weight[:num_classes]
+            weight = self.model.head.weight
+            print(f"  → Found single head with shape {weight.shape}")
+            return weight[:num_classes] if weight.shape[0] >= num_classes else weight
         
-        # Try to find linear layer
-        for name, module in self.model.named_modules():
-            if isinstance(module, nn.Linear) and module.out_features == num_classes:
-                return module.weight
+        # Handle ViT head directly
+        elif hasattr(self.model, 'vit') and hasattr(self.model.vit, 'head') and hasattr(self.model.vit.head, 'weight'):
+            weight = self.model.vit.head.weight
+            print(f"  → Found ViT head with shape {weight.shape}")
+            return weight[:num_classes] if weight.shape[0] >= num_classes else weight
         
-        print("  → Warning: Could not find classifier weights")
+        # Search for any linear layer as fallback
+        else:
+            for name, module in self.model.named_modules():
+                if isinstance(module, nn.Linear) and module.out_features >= num_classes:
+                    print(f"  → Found linear layer {name} with {module.out_features} outputs")
+                    return module.weight[:num_classes]
+        
+        print(f"  → Could not find classifier weights for task {task_id}")
         return None
+
     
     def visualize_patch_importance(self, 
                                  results: Dict,
                                  save_dir: Path,
                                  epoch: int,
-                                 dataset_name: str):
+                                 dataset_name: str,
+                                 task_name: str = ""):
         """Create visualizations of patch importance maps."""
         patch_maps = results['patch_importance_maps']
         num_blocks = len(patch_maps)
@@ -325,7 +356,11 @@ class ViTPatchImportanceAnalyzer:
         plt.suptitle(f'Patch Importance Maps - {dataset_name} (Epoch {epoch})', fontsize=16)
         plt.tight_layout()
         
-        save_path = save_dir / f'patch_importance_epoch_{epoch:03d}.png'
+        if task_name:
+            save_path = save_dir / f'patch_importance_{task_name}_{dataset_name}_epoch_{epoch:03d}.png'
+        else:
+            save_path = save_dir / f'patch_importance_epoch_{epoch:03d}.png'
+            
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         plt.close()
         
@@ -385,10 +420,14 @@ class ViTPatchImportanceAnalyzer:
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         plt.close()
     
-    def save_detailed_results(self, results: Dict, save_dir: Path, epoch: int):
+    def save_detailed_results(self, results: Dict, save_dir: Path, epoch: int, task_name: str = "", dataset_name: str = ""):
         """Save detailed patch importance results for later analysis."""
         # Save as numpy for easier loading (this is the main format we use)
-        np_path = save_dir / f'patch_importance_epoch_{epoch:03d}.npz'
+        if task_name:
+            np_path = save_dir / f'patch_importance_{task_name}_{dataset_name}_epoch_{epoch:03d}.npz'
+        else:
+            np_path = save_dir / f'patch_importance_epoch_{epoch:03d}.npz'
+        
         np.savez_compressed(
             np_path,
             **{k: v for k, v in results['patch_importance_maps'].items()},
